@@ -1,0 +1,474 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>A Canvas</title>
+</head>
+<body>
+    <canvas id="myCanvas" width="800" height="600" style="border:1px solid #eeeeee; position:absolute; top:0; left:0;">
+    Your browser does not support the canvas element.
+    </canvas>
+    <table id="acheives">
+        <tr>
+            <td width="800">
+                <td>
+        <div id="BoidHunter" style="display:none;"><b>BoidHunter:</b>Kill 50 Boids<br /></div>
+        <div id="BoidDestroyer" style="display:none;"><b>BoidDestroyer:</b>Kill 100 Boids<br /></div>
+        <div id="BoidANNIHILATOR" style="display:none;"><b>BoidANNIHILATOR:</b>Kill 1000 Boids<br /></div>
+        <div id="GetALife" style="display:none;"><b>GetALife:</b>Kill 10000 Boids<br /></div>
+        <div id="Seriously" style="display:none;"><b>Seriously:</b>Kill 1000000 Boids<br /></div>
+        <div id="TheDrop" style="display:none;"><b>TheDrop:</b>FPS Below 50<br /></div>
+        <div id="Overheater" style="display:none;"><b>Overheater:</b>FPS Below 30<br /></div>
+        <div id="TwoPossibilities" style="display:none;"><b>TwoPossibilities:</b>FPS Below 10 (You either have an awful computer, or you kick boid ass)<br /></div>
+        <div id="BloodLetter" style="display:none;"><b>BloodLetter:</b>300 Bloodlets On Screen<br /></div>
+        <div id="Vampire" style="display:none;"><b>Vampire:</b>400 Bloodlets On Screen<br /></div>
+        <div id="Dexter" style="display:none;"><b>Dexter:</b>500 Bloodlets On Screen<br /></div>
+        <div id="OverPopulation" style="display:none;"><b>OverPopulation:</b>500+ Boids On Screen<br /></div>
+        <div id="LikeRabbits" style="display:none;"><b>LikeRabbits:</b>1000+ Boids On Screen<br /></div>
+        <div id="Efficiency" style="display:none;"><b>Efficiency:</b>Kill >4 Boids With One Lazer<br /></div>
+        <div id="Ouch" style="display:none;"><b>Ouch:</b>Completely Miss<br /></div>
+        <div id="SharpShooter" style="display:none;"><b>SharpShooter:</b>One Shot - One Boid<br /></div>
+        <div id="AncientProverb" style="display:none;"><b>AncientProverb:</b>Kill Two Boids With One Stone/LazerBeam<br /></div>
+        <div id="Genocide" style="display:none;"><b>Genocide:</b>Deplete All Boids<br /></div>
+        <div id="UpsAndDowns" style="display:none;"><b>UpsAndDowns:</b>Up to 1k and back to 0<br /></div>
+                </td>
+            </td>
+        </tr>
+    </table>
+    <div id="debug1"></div><div id="debug2"></div><div id="debug3"></div>
+<script type="text/javascript">
+
+    //CONSTANTS
+    var FPS = 60;
+    //Boids
+    var BOIDS = 100;
+    var MAX_INIT_SPEED = 10;
+    var MAX_SPEED = 10;
+    var FRICTION = 0; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+    var BOID_SIZE = 10;
+    //Blood
+    var BLOOD = 500; //0-None, 1000-SUPER GORY
+    var BLOOD_VELOCITY = 2;
+    var BOID_BLOOD_INFLUENCE = 1;
+    var GRAVITY = .25;
+    var BLOOD_SIZE = 6;
+    //Rules
+    var RULE_CONSTANT = .01;
+    var TOWARDS_CENTER_RULE = .5;
+    var SPREAD_OUT_RULE = 2;
+    var SPREAD_EXPONENTIAL = 1;
+    var SPREAD_LINEAR = 0;
+    var SPREAD_MOUSE_EXPONENTIAL = 1;
+    var SPREAD_MOUSE_LINEAR = 0;
+    var SPREAD_DISTANCE = 25;
+    var RANDOM_VECTOR_RULE = 8;
+    //Mouse
+    var INCLUDE_MOUSE = 0; //1-YES, 0-NO
+    var MOUSE_WEIGHT = 10;
+    //Ship
+    var SHIP_WIDTH = 10;
+    var SHIP_HEIGHT = 10;
+    var LAZER_WIDTH = 10;
+    var SHIP_SPEED = 5;
+    var STAR_SIZE = 2;
+    
+    //HTML Vars
+    function debug(text, box) {
+        document.getElementById('debug'+box).innerHTML = text;
+    }
+    var canvas = document.getElementById("myCanvas");
+	var context = canvas.getContext("2d");
+
+	//JS vars
+    var numBoids = 0;
+    var numBlood = 0;
+    var you = new Ship(312);
+    var boids = new Array();
+    var blood = new Array();
+    var killCount = 0;
+    var killedWithShot = 0;
+    var highestKWS = 0;
+    var mouse = new Vector(canvas.width/2, canvas.height/2);
+    var spacePressed = false;
+    var leftPressed = false;
+    var rightPressed = false;
+    var hasFired = false;
+    var bImg;
+    var trueFPS;
+    
+    //Achievements
+    var BoidHunter = false; //Kill 50 Boids
+    var BoidDestroyer = false; //Kill 100 Boids
+    var BoidANNIHILATOR = false; //Kill 1000 Boids
+    var GetALife = false; //Kill 10000 Boids
+    var Seriously = false; //Kill 1000000 Boids
+    var TheDrop = false; //Slow FPS below 50
+    var OverHeater = false; //Slow FPS below 30
+    var TwoPossibilities = false; //Slow FPS below 10. Possibility 1- Shitty Computer. Possibility 2- Master of all that is Boid
+    var BloodLetter = false; //1000 Blood on Screen
+    var Vampire = false; //3000 Blood on Screen
+    var Dexter = false; //10000 Blood on Screen
+    var Ouch = false; //Miss Completely
+    var SharpShooter = false; //Kill only 1 Boid
+    var AncientProverb = false; //Kill 2 Boids with 1 Stone/Lazer
+    var Efficiency = false; //Kill >4 Boids In One Shot
+    var Genocide = false; //No boids left on screen
+    var OverPopulation = false; //500 boids on screen
+    var LikeRabbits = false; //1000 boids on screen
+    var UpsAndDowns = false; //Go from 1000+ back to 0
+
+    //Objects
+    function Vector(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    function Ship(pos) {
+        this.x = pos;
+        this.vel = 0;
+        this.lazerWidth = 0;
+        this.lazerX = 0;
+        this.draw = function () {
+            this.drawLazer();
+            context.fillStyle = "#FFFFFF";
+            context.fillRect(this.x-SHIP_WIDTH*.75, canvas.height-(3*SHIP_HEIGHT), SHIP_WIDTH*1.5, SHIP_HEIGHT);
+            context.fillRect(this.x-SHIP_WIDTH, canvas.height-(2*SHIP_HEIGHT), SHIP_WIDTH*2, SHIP_HEIGHT);
+        }
+        this.fire = function () {
+            if(this.lazerWidth != 0) return;
+            hasFired = true;
+            this.lazerX = this.x;
+            this.lazerWidth = LAZER_WIDTH;
+            killedWithShot = 0;
+            for (var i = 0; i < numBoids; i++) {
+                if(boids[i].pos.x <= this.x+LAZER_WIDTH+BOID_SIZE && boids[i].pos.x >= this.x-LAZER_WIDTH-BOID_SIZE){
+                    killBoid(i);
+                    killedWithShot++;
+                }
+            }
+            if(killedWithShot > highestKWS) highestKWS = killedWithShot;
+        }
+        this.drawLazer = function () {
+            if(this.lazerWidth == 0) return;
+            context.fillStyle = "#00FF00";
+            context.fillRect(this.lazerX-this.lazerWidth, 0, this.lazerWidth*2, canvas.height-SHIP_HEIGHT*3);
+            this.lazerWidth--;
+        }
+        this.update = function () {
+            if(spacePressed && !hasFired) you.fire();
+            if(leftPressed && this.x > SHIP_WIDTH) you.x-=SHIP_SPEED;
+            if(rightPressed && this.x < canvas.width-SHIP_WIDTH) you.x+=SHIP_SPEED;
+        }
+    }
+	function Boid(x, y, vx, vy) {
+	    this.pos = new Vector(x, y);
+	    this.vel = new Vector(vx,vy);
+  		this.draw = function () {
+            r = Math.random();
+            if(r > .75)context.fillStyle = "#FF00FF";
+            else if(r > .5)context.fillStyle = "#00FFFF";
+            else if(r > .25)context.fillStyle = "#FFFF00";
+            else context.fillStyle = "#0000FF";
+  		    //context.fillRect(this.pos.x-BOID_SIZE, this.pos.y-BOID_SIZE, BOID_SIZE*2, BOID_SIZE*2);
+            context.drawImage(bImg,this.pos.x-12, this.pos.y-12);
+  		}
+	}
+    function Blood(pos, vel) {
+        this.vel = applyForceVector(scale(applyForceVector(randomPointInUnitCircle(), normalize(vel), 1.5), BLOOD_VELOCITY), vel, (Math.random() * BOID_BLOOD_INFLUENCE)+.5);
+        this.pos = applyForceVector(pos, normalize(new Vector(1,1)), BOID_SIZE/2);// Center Of Boid
+        this.pos = applyForceVector(this.pos, normalize(this.vel), Math.random() * BOID_SIZE/2); // Random point inside boid on same side as direction of vel
+        this.size = Math.random()*BLOOD_SIZE;
+        this.draw = function() {
+            context.fillStyle = "#FF0000";
+            context.fillRect(this.pos.x, this.pos.y, this.size, this.size);
+        }
+    }
+
+    //START EXECUTION
+	init();
+    
+    function init() {
+        updateNumBoids();
+        document.onclick = handleMouseClick;
+        document.onkeyup = handleKeyUp;
+        document.onkeydown = handleKeyDown;
+        bImg = new Image();
+        bImg.src = "Bird.png";
+        
+        setInterval("update()", 1000 / FPS);
+    }
+    
+    function updateNumBoids(){
+        while(numBoids < BOIDS) {addBoid()};
+        while(numBoids > BOIDS) {killBoid(0)};
+    }
+    
+    
+    //EVENTS
+    function handleMouseMove(evt) {
+        mouse.x = evt.x;
+        mouse.y = evt.y;
+	}
+    function handleMouseClick(evt) {
+        if(spacePressed){
+            addBoid();
+            return;
+        }
+        if(numBoids == 0) return;
+        killBoid(Math.floor(Math.random()*numBoids));
+	}
+    function handleKeyDown(evt) {
+        if(evt.keyCode == 32) spacePressed = true;
+        if(evt.keyCode == 37) leftPressed = true;
+        if(evt.keyCode == 39) rightPressed = true;
+        if(evt.keyCode == 66) addBoid();
+    }
+    function handleKeyUp(evt) {
+        if(evt.keyCode == 32) {
+            spacePressed = false;
+            hasFired = false;
+        }
+        if(evt.keyCode == 37) leftPressed = false;
+        if(evt.keyCode == 39) rightPressed = false;
+    }
+    
+    //DRAW
+    function drawStars(n){
+        context.fillStyle = "#000000";
+        context.fillRect(0,0,canvas.width,canvas.height);
+        context.fillStyle = "#FFFFFF";
+        for(var i = 0; i < n; i++){
+            context.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, STAR_SIZE, STAR_SIZE);
+        }
+    }
+    function drawBoids() {
+	    //context.clearRect(0, 0, canvas.width, canvas.height);
+	    for (var i = 0; i < numBoids; i++) {
+	        boids[i].draw();
+	    }
+	}
+    function drawBlood(){
+        for(var i = 0; i < blood.length; i++) {
+            blood[i].pos = applyForceVector(blood[i].pos, blood[i].vel, 1);
+            blood[i].vel = applyForceVector(blood[i].vel, new Vector(0, GRAVITY), 1);
+            if(blood[i].pos.y > canvas.height && blood[i].vel.y > 0){
+                blood.splice(i, 1);
+                numBlood--;
+                //debug("Blood:"+numBlood, 2);
+            }
+            else {
+                blood[i].draw();
+            }
+        }
+    }
+    
+    //ALGO CALCS
+    function findCenter() {
+        var cent = new Vector(0,0);
+        for (var i = 0; i < numBoids; i++) {
+            cent = applyForceVector(cent, boids[i].pos, 1/(numBoids + INCLUDE_MOUSE*MOUSE_WEIGHT));
+        }
+        cent = applyForceVector(cent, mouse, MOUSE_WEIGHT * INCLUDE_MOUSE*(1/(numBoids + INCLUDE_MOUSE*MOUSE_WEIGHT))); // Adds Mouse as boid if INCLUDE_MOUSE is enabled
+        
+        return cent;
+    }
+    function towardsCenter(center, current) {
+        var tc = applyForceVector(center, boids[current].pos, -1);
+        return tc;
+    }
+    function towardsY(current, y) {
+        var ty = new Vector(boids[current].pos.x, y);
+        ty = applyForceVector(ty, boids[current].pos, -1);
+        return ty;
+    }
+
+    function spreadOut(current) {
+        var newVel = new Vector(0, 0);
+        var iBoidsInfluence = new Vector(0, 0);
+        var count = 0;
+        for (var i = 0; i < numBoids; i++) {
+            if (current != i) {
+                var distance = getDistance(boids[current].pos, boids[i].pos);
+                if (distance <= SPREAD_DISTANCE) {
+                    count++;
+                    iBoidsInfluence = scale(normalize(applyForceVector(boids[current].pos, boids[i].pos, -1)), SPREAD_EXPONENTIAL * Math.pow((SPREAD_DISTANCE - distance),2) + SPREAD_LINEAR * (SPREAD_DISTANCE - distance));
+                    newVel = applyForceVector(newVel, iBoidsInfluence, 1);
+                }
+            }
+        }
+        var distance = getDistance(boids[current].pos, mouse);
+        if(distance <= SPREAD_DISTANCE) {
+            count+=(MOUSE_WEIGHT * INCLUDE_MOUSE);
+            iBoidsInfluence = scale(normalize(applyForceVector(boids[current].pos, mouse, -1)), SPREAD_MOUSE_EXPONENTIAL * Math.pow((SPREAD_DISTANCE - distance),2) + SPREAD_MOUSE_LINEAR * (SPREAD_DISTANCE - distance));
+            newVel = applyForceVector(newVel, iBoidsInfluence, MOUSE_WEIGHT*INCLUDE_MOUSE);
+        }
+        
+        if(count != 0) newVel = scale(newVel, 1/count);
+        return newVel;
+    }
+    
+    function boundsCheck(current){
+        if((boids[current].pos.x < BOID_SIZE && boids[current].vel.x < 0) || (boids[current].pos.x > canvas.width-BOID_SIZE && boids[current].vel.x > 0)) boids[current].vel.x = -1*boids[current].vel.x;
+        if((boids[current].pos.y< BOID_SIZE && boids[current].vel.y < 0) || (boids[current].pos.y > canvas.height-BOID_SIZE && boids[current].vel.y > 0)) boids[current].vel.y = -1*boids[current].vel.y;
+    }
+
+    function addBoid() {
+        boids[boids.length] = new Boid(Math.random() * canvas.width, Math.random() * canvas.height, (Math.random() - .5) * MAX_INIT_SPEED, (Math.random() - .5) * MAX_INIT_SPEED);
+        numBoids++;
+        //debug("Boids:"+numBoids, 1);
+    }
+    
+    function killBoid(id) {
+        killCount++;
+        for(var i = 0; i < BLOOD; i++){
+            blood[blood.length] = new Blood(boids[id].pos, boids[id].vel);
+            numBlood++;
+            //debug("Blood:"+numBlood,2);
+        }
+        boids.splice(id, 1);
+        numBoids--;
+        //debug("Boids:"+numBoids, 1);
+    }
+	
+    //Vector Calculations
+    function getDistance(v1, v2) {
+        return Math.sqrt(Math.pow(v1.x - v2.x, 2) + Math.pow(v1.y - v2.y, 2));
+    }
+    function getLength(v) {
+        return Math.sqrt(Math.pow(v.x,2)+Math.pow(v.y,2));
+    }
+    function normalize(v){
+        var length = getLength(v);
+        if(length == 0) return new Vector(0,0);
+        return new Vector(v.x/length,v.y/length);
+    }
+    function scale(v, multiplier){
+        return new Vector(v.x * multiplier, v.y * multiplier);
+    }
+    function applyForceVector(v1, v2, multiplier) {
+        return new Vector(v1.x+(v2.x*multiplier), v1.y+(v2.y*multiplier));
+    }
+    function randomUnitVector(){
+        return normalize(new Vector(Math.random()-.5, Math.random()-.5));
+    }
+    function randomPointInUnitCircle() {
+        return scale(randomUnitVector(), Math.random());
+    }
+	
+	function checkAchievements(){
+        //Kill Count
+        if(killCount > 50){ 
+            BoidHunter = true; //Kill 50 Boids
+            document.getElementById("BoidHunter").style.display = "inline";
+        }
+        if(killCount > 100){ 
+            BoidDestroyer = true; //Kill 100 Boids
+            document.getElementById("BoidDestroyer").style.display = "inline";
+        }
+        if(killCount > 1000){ 
+            BoidANNIHILATOR = true; //Kill 1000 Boids
+            document.getElementById("BoidANNIHILATOR").style.display = "inline";
+        }
+        if(killCount > 10000){ 
+            GetALife = true; //Kill 10000 Boids
+            document.getElementById("GetALife").style.display = "inline";
+        }
+        if(killCount > 1000000){ 
+            Seriously = true; //Kill 1000000 Boids
+            document.getElementById("Seriously").style.display = "inline";
+        }
+        
+        //FPS
+        if(trueFPS < 50){ 
+            TheDrop = true; //Slow FPS below 50
+            document.getElementById("TheDrop").style.display = "inline";
+        }
+        if(trueFPS < 30){ 
+            OverHeater = true; //Slow FPS below 30
+            document.getElementById("OverHeater").style.display = "inline";
+        }
+        if(trueFPS < 10){ 
+            TwoPossibilities = true; //Slow FPS below 10. Possibility 1- Shitty Computer. Possibility 2- Master of all that is Boid
+            document.getElementById("TwoPossibilities").style.display = "inline";
+        }
+        
+        //Blood
+        if(numBlood > 1000){ 
+            BloodLetter = true; //1000 Blood on Screen
+            document.getElementById("BloodLetter").style.display = "inline";
+        }
+        if(numBlood > 3000){ 
+            Vampire = true; //3000 Blood on Screen
+            document.getElementById("Vampire").style.display = "inline";
+        }
+        if(numBlood > 10000){ 
+            Dexter = true; //10000 Blood on Screen
+            document.getElementById("Dexter").style.display = "inline";
+        }
+        
+        //Efficiency
+        if(highestKWS >4){ 
+            Efficiency = true; //Kill >4 Boids In One Shot
+            document.getElementById("Efficiency").style.display = "inline";
+        }
+        
+        //Boids
+        if(numBoids > 500){ 
+            OverPopulation = true; //500 boids on screen
+            document.getElementById("OverPopulation").style.display = "inline";
+        }
+        if(numBoids > 1000){ 
+            LikeRabbits = true; //1000 boids on screen
+            document.getElementById("LikeRabbits").style.display = "inline";
+        }
+        
+        //Special
+        if(highestKWS>0 && killedWithShot == 0){ 
+            Ouch = true; //Miss Completely
+            document.getElementById("Ouch").style.display = "inline";
+        }
+        if(killedWithShot == 1){ 
+            SharpShooter = true; //Kill only 1 Boid
+            document.getElementById("SharpShooter").style.display = "inline";
+        }
+        if(killedWithShot == 2){ 
+            AncientProverb = true; //Kill 2 Boids with 1 Stone/Lazer
+            document.getElementById("AncientProverb").style.display = "inline";
+        }
+        if(numBoids == 0){ 
+            Genocide = true; //No boids left on screen
+            document.getElementById("Genocide").style.display = "inline";
+        }
+        if(numBoids == 0 && LikeRabbits){ 
+            UpsAndDowns = true; //Go from 1000+ back to 0
+            document.getElementById("UpsAndDowns").style.display = "inline";
+        }
+    }
+    
+    //Main Execution Loop
+    function update() {
+        var centerV = findCenter();
+        for (var i = 0; i < numBoids; i++) {
+            boids[i].vel = applyForceVector(boids[i].vel, towardsY(i, 200), TOWARDS_CENTER_RULE * RULE_CONSTANT);
+            boids[i].vel = applyForceVector(boids[i].vel, spreadOut(i), SPREAD_OUT_RULE * RULE_CONSTANT);
+            boids[i].vel = applyForceVector(boids[i].vel, randomUnitVector(), RANDOM_VECTOR_RULE * RULE_CONSTANT);
+            boids[i].vel = applyForceVector(boids[i].vel, boids[i].vel, -1 * FRICTION);
+            boundsCheck(i);
+            if(getLength(boids[i].vel) > MAX_SPEED) boids[i].vel = scale(normalize(boids[i].vel), MAX_SPEED);
+        }
+    
+        for (var i = 0; i < numBoids; i++) {
+            boids[i].pos = applyForceVector(boids[i].pos, boids[i].vel, 1);
+        }
+        
+        checkAchievements();
+        
+        drawStars(500);
+        drawBoids();
+        drawBlood();
+        you.update();
+        you.draw();
+    }
+	
+</script>
+
+</body>
+</html>

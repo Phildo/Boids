@@ -1,0 +1,431 @@
+<!DOCTYPE HTML>
+<html>
+<head><title>A Canvas</title></head>
+<body onkeypress="handleKeyPress(evt)" onkeyup="handleKeyUp(evt)" onmousemove="handleMouseMove(evt)">
+    <canvas id="myCanvas" width="640" height="480" style="border:1px solid #eeeeee; position:absolute; top:0; left:0;" onClick="handleClick(evt)" >
+    Your browser does not support the canvas element.
+    </canvas>
+    <div id="debug1"> Boids:0 </div><div id="debug2"> Blood:0 </div><div id="debug3"></div>
+    <div id="buttons" style="position:absolute; top:460;">
+        <button type="button" id="AMOEBA" onClick="setMode('AMOEBA')">AMOEBA</button>
+        <button type="button" id="BLOB" onClick="setMode('BLOB')">BLOB</button>
+        <button type="button" id="AMOEBA" onClick="setMode('FLOCKING')">FLOCKING</button>
+    </div>
+<script type="text/javascript">
+
+    //CONSTANTS
+    var FPS = 60;
+    //Boids
+    var BOIDS = 200;
+    var MAX_INIT_SPEED = 0;
+    var MAX_SPEED = 10;
+    var FRICTION = 0.1; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+    var BOID_SIZE = 5;
+    //Blood
+    var BLOOD = 500; //0-None, 1000-SUPER GORY
+    var BLOOD_VELOCITY = 2;
+    var BOID_BLOOD_INFLUENCE = 1;
+    var GRAVITY = .5;
+    var BLOOD_SIZE = 4;
+    //Rules
+    var RULE_CONSTANT = 1;
+    var TOWARDS_CENTER_RULE = 1;
+    var SPREAD_OUT_RULE = 1;
+    var SPREAD_EXPONENTIAL = 0;
+    var SPREAD_LINEAR = 1;
+    var SPREAD_MOUSE_EXPONENTIAL = 1;
+    var SPREAD_MOUSE_LINEAR = 0;
+    var SPREAD_DISTANCE = 50;
+    var RANDOM_VECTOR_RULE = 0;
+    //Mouse
+    var INCLUDE_MOUSE = 1; //1-YES, 0-NO
+    var MOUSE_WEIGHT = 1;
+    
+    /*AMOEBA
+    //CONSTANTS
+    var FPS = 60;
+    //Boids
+    var BOIDS = 500;
+    var MAX_INIT_SPEED = 0;
+    var MAX_SPEED = 10;
+    var FRICTION = 0.1; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+    var BOID_SIZE = 1;
+    //Blood
+    var BLOOD = 500; //0-None, 1000-SUPER GORY
+    var BLOOD_VELOCITY = 2;
+    var BOID_BLOOD_INFLUENCE = 1;
+    var GRAVITY = .5;
+    var BLOOD_SIZE = 4;
+    //Rules
+    var RULE_CONSTANT = 1;
+    var TOWARDS_CENTER_RULE = 1;
+    var SPREAD_OUT_RULE = 1;
+    var SPREAD_EXPONENTIAL = 0;
+    var SPREAD_LINEAR = 1;
+    var SPREAD_MOUSE_EXPONENTIAL = 0;
+    var SPREAD_MOUSE_LINEAR = 1;
+    var SPREAD_DISTANCE = 50;
+    var RANDOM_VECTOR_RULE = 0;
+    //Mouse
+    var INCLUDE_MOUSE = 1; //1-YES, 0-NO
+    var MOUSE_WEIGHT = 10;
+    //*/
+
+    /*BLOB
+    //CONSTANTS
+    var FPS = 60;
+    //Boids
+    var BOIDS = 200;
+    var MAX_INIT_SPEED = 0;
+    var MAX_SPEED = 10;
+    var FRICTION = 0.1; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+    var BOID_SIZE = 5;
+    //Blood
+    var BLOOD = 500; //0-None, 1000-SUPER GORY
+    var BLOOD_VELOCITY = 2;
+    var BOID_BLOOD_INFLUENCE = 1;
+    var GRAVITY = .5;
+    var BLOOD_SIZE = 4;
+    //Rules
+    var RULE_CONSTANT = 1;
+    var TOWARDS_CENTER_RULE = 1;
+    var SPREAD_OUT_RULE = 1;
+    var SPREAD_EXPONENTIAL = 0;
+    var SPREAD_LINEAR = 1;
+    var SPREAD_MOUSE_EXPONENTIAL = 1;
+    var SPREAD_MOUSE_LINEAR = 0;
+    var SPREAD_DISTANCE = 50;
+    var RANDOM_VECTOR_RULE = 0;
+    //Mouse
+    var INCLUDE_MOUSE = 1; //1-YES, 0-NO
+    var MOUSE_WEIGHT = 1;
+    //*/
+
+    /*FLOCKING
+     //CONSTANTS
+     var FPS = 60;
+     //Boids
+     var BOIDS = 100;
+     var MAX_INIT_SPEED = 20;
+     var MAX_SPEED = 100;
+     var FRICTION = .005; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+     var BOID_SIZE = 5;
+     //Blood
+     var BLOOD = 100; //0-None, 1000-SUPER GORY
+     var BLOOD_VELOCITY = 2;
+     var BOID_BLOOD_INFLUENCE = 1;
+     var GRAVITY = .5;
+     var BLOOD_SIZE = 4;
+     //Rules
+     var RULE_CONSTANT = .01;
+     var TOWARDS_CENTER_RULE = .5;
+     var SPREAD_OUT_RULE = 1;
+     var SPREAD_EXPONENTIAL = 1;
+	 var SPREAD_LINEAR = 0;
+     var SPREAD_MOUSE_EXPONENTIAL = 1;
+     var SPREAD_MOUSE_LINEAR = 0;
+     var SPREAD_DISTANCE = 20;
+     var RANDOM_VECTOR_RULE = 0;
+     //Mouse
+     var INCLUDE_MOUSE = 1; //1-YES, 0-NO
+     var MOUSE_WEIGHT = 10;
+     //*/
+    
+    //HTML Vars
+    function debug(text, box) {
+        document.getElementById('debug'+box).innerHTML = text;
+    }
+    var canvas = document.getElementById("myCanvas");
+	var context = canvas.getContext("2d");
+
+	//JS vars
+    var numBoids = 0;
+    var numBlood = 0;
+    var boids = new Array();
+    var blood = new Array();
+    var mouse = new Vector(canvas.width/2, canvas.height/2);
+    var shiftPressed = false;
+    
+    //Objects
+    function Vector(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+	function Boid(x, y, vx, vy) {
+	    this.pos = new Vector(x, y);
+	    this.vel = new Vector(vx,vy);
+  		this.draw = function () {
+  		    context.fillStyle = "#0000FF";
+  		    context.fillRect(this.pos.x, this.pos.y, BOID_SIZE, BOID_SIZE);
+  		}
+	}
+    function Blood(pos, vel) {
+        this.vel = applyForceVector(scale(applyForceVector(randomPointInUnitCircle(), normalize(vel), 1.5), BLOOD_VELOCITY), vel, (Math.random() * BOID_BLOOD_INFLUENCE)+.5);
+        this.pos = applyForceVector(pos, normalize(new Vector(1,1)), BOID_SIZE/2);// Center Of Boid
+        this.pos = applyForceVector(this.pos, normalize(this.vel), Math.random() * BOID_SIZE/2); // Random point inside boid on same side as direction of vel
+        this.size = Math.random()*BLOOD_SIZE;
+        this.draw = function() {
+            context.fillStyle = "#FF0000";
+            context.fillRect(this.pos.x, this.pos.y, this.size, this.size);
+        }
+    }
+
+    //START EXECUTION
+	init();
+    
+    function init() {
+        updateNumBoids();
+        setInterval("update()", 1000 / FPS);
+    }
+    
+    function updateNumBoids(){
+        while(numBoids < BOIDS) {addBoid()};
+        while(numBoids > BOIDS) {killBoid(0)};
+    }
+    
+    function setMode(mode) {
+        if(mode == "BLOB")
+        {
+            //CONSTANTS
+            FPS = 60;
+            //Boids
+            BOIDS = 200;
+            MAX_INIT_SPEED = 0;
+            MAX_SPEED = 10;
+            FRICTION = 0.1; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+            BOID_SIZE = 5;
+            //Blood
+            BLOOD = 500; //0-None, 1000-SUPER GORY
+            BLOOD_VELOCITY = 2;
+            BOID_BLOOD_INFLUENCE = 1;
+            GRAVITY = .5;
+            BLOOD_SIZE = 4;
+            //Rules
+            RULE_CONSTANT = 1;
+            TOWARDS_CENTER_RULE = 1;
+            SPREAD_OUT_RULE = 1;
+            SPREAD_EXPONENTIAL = 0;
+            SPREAD_LINEAR = 1;
+            SPREAD_MOUSE_EXPONENTIAL = 1;
+            SPREAD_MOUSE_LINEAR = 0;
+            SPREAD_DISTANCE = 50;
+            RANDOM_VECTOR_RULE = 0;
+            //Mouse
+            INCLUDE_MOUSE = 1; //1-YES, 0-NO
+            MOUSE_WEIGHT = 1;
+        }
+        else if(mode == "AMOEBA")
+        {
+            //CONSTANTS
+            FPS = 60;
+            //Boids
+            BOIDS = 500;
+            MAX_INIT_SPEED = 0;
+            MAX_SPEED = 10;
+            FRICTION = 0.1; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+            BOID_SIZE = 1;
+            //Blood
+            BLOOD = 500; //0-None, 1000-SUPER GORY
+            BLOOD_VELOCITY = 2;
+            BOID_BLOOD_INFLUENCE = 1;
+            GRAVITY = .5;
+            BLOOD_SIZE = 4;
+            //Rules
+            RULE_CONSTANT = 1;
+            TOWARDS_CENTER_RULE = 1;
+            SPREAD_OUT_RULE = 1;
+            SPREAD_EXPONENTIAL = 0;
+            SPREAD_LINEAR = 1;
+            SPREAD_MOUSE_EXPONENTIAL = 0;
+            SPREAD_MOUSE_LINEAR = 1;
+            SPREAD_DISTANCE = 50;
+            RANDOM_VECTOR_RULE = 0;
+            //Mouse
+            INCLUDE_MOUSE = 1; //1-YES, 0-NO
+            MOUSE_WEIGHT = 10;
+        }
+        else if(mode == "FLOCKING")
+        {
+            //CONSTANTS
+            FPS = 60;
+            //Boids
+            BOIDS = 100;
+            MAX_INIT_SPEED = 20;
+            MAX_SPEED = 100;
+            FRICTION = .005; //0 = free moving, 1 = static, > 1 = reverse, < 0 = constantly accelerate
+            BOID_SIZE = 5;
+            //Blood
+            BLOOD = 100; //0-None, 1000-SUPER GORY
+            BLOOD_VELOCITY = 2;
+            BOID_BLOOD_INFLUENCE = 1;
+            GRAVITY = .5;
+            BLOOD_SIZE = 4;
+            //Rules
+            RULE_CONSTANT = .01;
+            TOWARDS_CENTER_RULE = .5;
+            SPREAD_OUT_RULE = 1;
+            SPREAD_EXPONENTIAL = 1;
+            SPREAD_LINEAR = 0;
+            SPREAD_MOUSE_EXPONENTIAL = 1;
+            SPREAD_MOUSE_LINEAR = 0;
+            SPREAD_DISTANCE = 20;
+            RANDOM_VECTOR_RULE = 0;
+            //Mouse
+            INCLUDE_MOUSE = 1; //1-YES, 0-NO
+            MOUSE_WEIGHT = 10;
+        }
+        updateNumBoids();
+    }
+    
+    //EVENTS
+    function handleMouseMove(evt) {
+        mouse.x = evt.x;
+        mouse.y = evt.y;
+	}
+    function handleClick(evt) {
+        if(shiftPressed){
+            addBoid();
+            return;
+        }
+        if(numBoids == 0) return;
+        killBoid(Math.floor(Math.random()*numBoids));
+	}
+    function handleKeyPress(evt) {
+        if(evt.charCode == 32) shiftPressed = true;
+    }
+    function handleKeyUp(evt) {
+        if(evt.keyCode == 32) shiftPressed = false
+    }
+    
+    //DRAW
+    function drawBoids() {
+	    context.clearRect(0, 0, 640, 480);
+	    for (var i = 0; i < numBoids; i++) {
+	        boids[i].draw();
+	    }
+	}
+    function drawBlood(){
+        for(var i = 0; i < blood.length; i++) {
+            blood[i].pos = applyForceVector(blood[i].pos, blood[i].vel, 1);
+            blood[i].vel = applyForceVector(blood[i].vel, new Vector(0, GRAVITY), 1);
+            if(blood[i].pos.y > canvas.height && blood[i].vel.y > 0){
+                blood.splice(i, 1);
+                numBlood--;
+                debug("Blood:"+numBlood, 2);
+            }
+            else {
+                blood[i].draw();
+            }
+        }
+    }
+    
+    //ALGO CALCS
+    function towardsCenter(current) {
+        if(numBoids+INCLUDE_MOUSE == 1) return boids[0].pos; //If only one boid left, its search for 'the center of all the boids except for itself' will be 0,0, which makes no sense
+        var ave = new Vector(0,0);
+        for (var i = 0; i < numBoids; i++) {
+            if (current != i) {
+                ave = applyForceVector(ave, boids[i].pos, 1/(numBoids - 1 + INCLUDE_MOUSE*MOUSE_WEIGHT));
+            }
+        }
+        ave = applyForceVector(ave, mouse, MOUSE_WEIGHT * INCLUDE_MOUSE*(1/(numBoids - 1 + INCLUDE_MOUSE*MOUSE_WEIGHT))); // Adds Mouse as boid if INCLUDE_MOUSE is enabled
+        
+        ave = applyForceVector(ave, boids[current].pos, -1);
+        return ave;
+    }
+
+    function spreadOut(current) {
+        var newVel = new Vector(0, 0);
+        var iBoidsInfluence = new Vector(0, 0);
+        var count = 0;
+        for (var i = 0; i < numBoids; i++) {
+            if (current != i) {
+                var distance = getDistance(boids[current].pos, boids[i].pos);
+                if (distance <= SPREAD_DISTANCE) {
+                    count++;
+                    iBoidsInfluence = scale(normalize(applyForceVector(boids[current].pos, boids[i].pos, -1)), SPREAD_EXPONENTIAL * Math.pow((SPREAD_DISTANCE - distance),2) + SPREAD_LINEAR * (SPREAD_DISTANCE - distance));
+                    newVel = applyForceVector(newVel, iBoidsInfluence, 1);
+                }
+            }
+        }
+        var distance = getDistance(boids[current].pos, mouse);
+        if(distance <= SPREAD_DISTANCE) {
+            count+=(MOUSE_WEIGHT * INCLUDE_MOUSE);
+            iBoidsInfluence = scale(normalize(applyForceVector(boids[current].pos, mouse, -1)), SPREAD_MOUSE_EXPONENTIAL * Math.pow((SPREAD_DISTANCE - distance),2) + SPREAD_MOUSE_LINEAR * (SPREAD_DISTANCE - distance));
+            newVel = applyForceVector(newVel, iBoidsInfluence, MOUSE_WEIGHT*INCLUDE_MOUSE);
+        }
+        
+        if(count != 0) newVel = scale(newVel, 1/count);
+        return newVel;
+    }
+
+    function boundsCheck(current){
+        if((boids[current].pos.x < 0 && boids[current].vel.x < 0) || (boids[current].pos.x > 640 && boids[current].vel.x > 0)) boids[current].vel.x = -1*boids[current].vel.x;
+        if((boids[current].pos.y< 0 && boids[current].vel.y < 0) || (boids[current].pos.y > 480 && boids[current].vel.y > 0)) boids[current].vel.y = -1*boids[current].vel.y;
+    }
+    
+    function addBoid() {
+        boids[boids.length] = new Boid(Math.random() * canvas.width, Math.random() * canvas.height, (Math.random() - .5) * MAX_INIT_SPEED, (Math.random() - .5) * MAX_INIT_SPEED);
+        numBoids++;
+        debug("Boids:"+numBoids, 1);
+    }
+    
+    function killBoid(id) {
+        for(var i = 0; i < BLOOD; i++){
+            blood[blood.length] = new Blood(boids[id].pos, boids[id].vel);
+            numBlood++;
+            debug("Blood:"+numBlood,2);
+        }
+        boids.splice(id, 1);
+        numBoids--;
+        debug("Boids:"+numBoids, 1);
+    }
+	
+    //Vector Calculations
+    function getDistance(v1, v2) {
+        return Math.sqrt(Math.pow(v1.x - v2.x, 2) + Math.pow(v1.y - v2.y, 2));
+    }
+    function getLength(v) {
+        return Math.sqrt(Math.pow(v.x,2)+Math.pow(v.y,2));
+    }
+    function normalize(v){
+        var length = getLength(v);
+        if(length == 0) return new Vector(0,0);
+        return new Vector(v.x/length,v.y/length);
+    }
+    function scale(v, multiplier){
+        return new Vector(v.x * multiplier, v.y * multiplier);
+    }
+    function applyForceVector(v1, v2, multiplier) {
+        return new Vector(v1.x+(v2.x*multiplier), v1.y+(v2.y*multiplier));
+    }
+    function randomUnitVector(){
+        return normalize(new Vector(Math.random()-.5, Math.random()-.5));
+    }
+    function randomPointInUnitCircle() {
+        return scale(randomUnitVector(), Math.random());
+    }
+	
+	
+    //Main Execution Loop
+    function update() {
+        for (var i = 0; i < numBoids; i++) {
+            boids[i].vel = applyForceVector(boids[i].vel, towardsCenter(i), TOWARDS_CENTER_RULE * RULE_CONSTANT);
+            boids[i].vel = applyForceVector(boids[i].vel, spreadOut(i), SPREAD_OUT_RULE * RULE_CONSTANT);
+            boids[i].vel = applyForceVector(boids[i].vel, randomUnitVector(), RANDOM_VECTOR_RULE * RULE_CONSTANT);
+            boids[i].vel = applyForceVector(boids[i].vel, boids[i].vel, -1 * FRICTION);
+            boundsCheck(i);
+            if(getLength(boids[i].vel) > MAX_SPEED) boids[i].vel = scale(normalize(boids[i].vel), MAX_SPEED);
+        }
+    
+        for (var i = 0; i < numBoids; i++) {
+            boids[i].pos = applyForceVector(boids[i].pos, boids[i].vel, 1);
+        }
+        drawBoids();
+        drawBlood();
+    }
+	
+</script>
+
+</body>
+</html>
