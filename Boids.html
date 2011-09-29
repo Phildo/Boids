@@ -11,17 +11,18 @@
         <tr>
             <td width="800">
                 <td>
+                    <div id="HelloWorld" style="display:inline;"><b>HelloWorld:</b>Join The Game<br /></div>
         <div id="BoidHunter" style="display:none;"><b>BoidHunter:</b>Kill 50 Boids<br /></div>
         <div id="BoidDestroyer" style="display:none;"><b>BoidDestroyer:</b>Kill 100 Boids<br /></div>
         <div id="BoidANNIHILATOR" style="display:none;"><b>BoidANNIHILATOR:</b>Kill 1000 Boids<br /></div>
         <div id="GetALife" style="display:none;"><b>GetALife:</b>Kill 10000 Boids<br /></div>
         <div id="Seriously" style="display:none;"><b>Seriously:</b>Kill 1000000 Boids<br /></div>
-        <div id="TheDrop" style="display:none;"><b>TheDrop:</b>FPS Below 50<br /></div>
-        <div id="OverHeater" style="display:none;"><b>Overheater:</b>FPS Below 30<br /></div>
+        <div id="TheDrop" style="display:none;"><b>TheDrop:</b>FPS Below 30<br /></div>
+        <div id="OverHeater" style="display:none;"><b>Overheater:</b>FPS Below 20<br /></div>
         <div id="TwoPossibilities" style="display:none;"><b>TwoPossibilities:</b>FPS Below 10 (You either have an awful computer, or you kick boid ass)<br /></div>
-        <div id="BloodLetter" style="display:none;"><b>BloodLetter:</b>300 Bloodlets On Screen<br /></div>
-        <div id="Vampire" style="display:none;"><b>Vampire:</b>400 Bloodlets On Screen<br /></div>
-        <div id="Dexter" style="display:none;"><b>Dexter:</b>500 Bloodlets On Screen<br /></div>
+        <div id="BloodLetter" style="display:none;"><b>BloodLetter:</b>1000 Bloodlets On Screen<br /></div>
+        <div id="Vampire" style="display:none;"><b>Vampire:</b>3000 Bloodlets On Screen<br /></div>
+        <div id="Dexter" style="display:none;"><b>Dexter:</b>10000 Bloodlets On Screen<br /></div>
         <div id="OverPopulation" style="display:none;"><b>OverPopulation:</b>500+ Boids On Screen<br /></div>
         <div id="LikeRabbits" style="display:none;"><b>LikeRabbits:</b>1000+ Boids On Screen<br /></div>
         <div id="Efficiency" style="display:none;"><b>Efficiency:</b>Kill >4 Boids With One Lazer<br /></div>
@@ -106,8 +107,8 @@
     var BoidANNIHILATOR = false; //Kill 1000 Boids
     var GetALife = false; //Kill 10000 Boids
     var Seriously = false; //Kill 1000000 Boids
-    var TheDrop = false; //Slow FPS below 50
-    var OverHeater = false; //Slow FPS below 30
+    var TheDrop = false; //Slow FPS below 30
+    var OverHeater = false; //Slow FPS below 20
     var TwoPossibilities = false; //Slow FPS below 10. Possibility 1- Shitty Computer. Possibility 2- Master of all that is Boid
     var BloodLetter = false; //300 Blood on Screen
     var Vampire = false; //400 Blood on Screen
@@ -382,12 +383,12 @@
         }
         
         //FPS
-        if(trueFPS < 50){ 
-            TheDrop = true; //Slow FPS below 50
+        if(trueFPS < 30){ 
+            TheDrop = true; //Slow FPS below 30
             document.getElementById("TheDrop").style.display = "inline";
         }
-        if(trueFPS < 30){ 
-            OverHeater = true; //Slow FPS below 30
+        if(trueFPS < 20){ 
+            OverHeater = true; //Slow FPS below 20
             document.getElementById("OverHeater").style.display = "inline";
         }
         if(trueFPS < 10){ 
@@ -396,16 +397,16 @@
         }
         
         //Blood
-        if(numBlood > 300){ 
-            BloodLetter = true; //300 Blood on Screen
+        if(numBlood > 1000){ 
+            BloodLetter = true; //1000 Blood on Screen
             document.getElementById("BloodLetter").style.display = "inline";
         }
-        if(numBlood > 400){ 
-            Vampire = true; //400 Blood on Screen
+        if(numBlood > 3000){ 
+            Vampire = true; //3000 Blood on Screen
             document.getElementById("Vampire").style.display = "inline";
         }
-        if(numBlood > 500){ 
-            Dexter = true; //500 Blood on Screen
+        if(numBlood > 10000){ 
+            Dexter = true; //10000 Blood on Screen
             document.getElementById("Dexter").style.display = "inline";
         }
         
