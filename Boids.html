@@ -19,7 +19,7 @@
         <div id="Seriously" style="display:none;"><b>Seriously:</b>Kill 1000000 Boids<br /></div>
         <div id="TheDrop" style="display:none;"><b>TheDrop:</b>FPS Below 30<br /></div>
         <div id="OverHeater" style="display:none;"><b>Overheater:</b>FPS Below 20<br /></div>
-        <div id="TwoPossibilities" style="display:none;"><b>TwoPossibilities:</b>FPS Below 10 (You either have an awful computer, or you kick boid ass)<br /></div>
+        <div id="TwoPossibilities" style="display:none;"><b>TwoPossibilities:</b>FPS Below 5 (Awful computer || Kicking Ass)<br /></div>
         <div id="BloodLetter" style="display:none;"><b>BloodLetter:</b>1000 Bloodlets On Screen<br /></div>
         <div id="Vampire" style="display:none;"><b>Vampire:</b>3000 Bloodlets On Screen<br /></div>
         <div id="Dexter" style="display:none;"><b>Dexter:</b>10000 Bloodlets On Screen<br /></div>
@@ -109,7 +109,7 @@
     var Seriously = false; //Kill 1000000 Boids
     var TheDrop = false; //Slow FPS below 30
     var OverHeater = false; //Slow FPS below 20
-    var TwoPossibilities = false; //Slow FPS below 10. Possibility 1- Shitty Computer. Possibility 2- Master of all that is Boid
+    var TwoPossibilities = false; //Slow FPS below 5. Possibility 1- Shitty Computer. Possibility 2- Master of all that is Boid
     var BloodLetter = false; //300 Blood on Screen
     var Vampire = false; //400 Blood on Screen
     var Dexter = false; //500 Blood on Screen
@@ -391,8 +391,8 @@
             OverHeater = true; //Slow FPS below 20
             document.getElementById("OverHeater").style.display = "inline";
         }
-        if(trueFPS < 10){ 
-            TwoPossibilities = true; //Slow FPS below 10. Possibility 1- Shitty Computer. Possibility 2- Master of all that is Boid
+        if(trueFPS < 5){ 
+            TwoPossibilities = true; //Slow FPS below 5. Possibility 1- Shitty Computer. Possibility 2- Master of all that is Boid
             document.getElementById("TwoPossibilities").style.display = "inline";
         }
         
