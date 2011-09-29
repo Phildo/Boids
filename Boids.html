@@ -181,7 +181,7 @@
             else if(r > .5)context.fillStyle = "#00FFFF";
             else if(r > .25)context.fillStyle = "#FFFF00";
             else context.fillStyle = "#0000FF";
-  		    //context.fillRect(this.pos.x-BOID_SIZE, this.pos.y-BOID_SIZE, BOID_SIZE*2, BOID_SIZE*2);
+  		    context.fillRect(this.pos.x-BOID_SIZE, this.pos.y-BOID_SIZE, BOID_SIZE*2, BOID_SIZE*2);
             context.drawImage(bImg,this.pos.x-12, this.pos.y-12);
   		}
 	}
